@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime-Wor — Смотреть аниме онлайн</title>
+<link rel="stylesheet" href="style.css?v=11">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FF6B35">
+<link rel="apple-touch-icon" href="/icon-192.png">
+</head>
+<body>
+
+<!-- ================= ФОН С ПЕРСОНАЖАМИ ================= -->
+<div class="bg-scene">
+  <div class="bg-color"></div>
+  <img src="/img/naruto.png" class="chara chara-left" alt="Naruto" onerror="this.style.display='none'">
+  <img src="/img/sasuke.png" class="chara chara-right" alt="Sasuke" onerror="this.style.display='none'">
+</div>
+
+<!-- ================= HEADER ================= -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="#home" class="logo" onclick="navigate('home');return false;">
+      <span class="logo-box">AW</span>
+      <span class="logo-text">ANIME<span class="accent">-WOR</span></span>
+    </a>
+
+    <nav class="nav">
+        <a href="#home" onclick="navigate('home');return false;">Главная</a>
+        <a href="#catalog" onclick="navigate('catalog');return false;">Каталог</a>
+        <a href="#schedule" onclick="navigate('schedule');return false;">Расписание</a>
+        <a href="#favorites" onclick="navigate('favorites');return false;">Избранное</a>
+    </nav>
+
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="ПОИСК..." autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌙</button>
+    <div class="user-area" id="userArea"></div>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">ANIME-WOR</div>
+        <p>Смотреть аниме онлайн в HD качестве</p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <a href="#catalog" onclick="navigate('catalog');return false;">Каталог</a>
+      </div>
+      <div>
+        <h4>Аккаунт</h4>
+        <a href="#" id="footerLogin" onclick="openLogin();return false;">Войти</a>
+        <a href="#" id="footerRegister" onclick="openRegister();return false;">Регистрация</a>
+      </div>
+    </div>
+    <p class="footer-copy">© 2026 Anime-Wor</p>
+  </div>
+</footer>
+
+<div class="modal" id="loginModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('loginModal')">×</button>
+    <h2>ВХОД</h2>
+    <div class="field"><label>Логин или Email</label><input id="loginUser" placeholder="username"></div>
+    <div class="field"><label>Пароль</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-block" onclick="doLogin()">Войти</button>
+    <p class="modal-hint">Нет аккаунта? <a href="#" onclick="closeModal('loginModal');openRegister();return false;">Зарегистрироваться</a></p>
+  </div>
+</div>
+
+<div class="modal" id="registerModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('registerModal')">×</button>
+    <h2>РЕГИСТРАЦИЯ</h2>
+    <div class="field"><label>Логин</label><input id="regUser" placeholder="username"></div>
+    <div class="field"><label>Email</label><input id="regEmail" type="email" placeholder="you@mail.com"></div>
+    <div class="field"><label>Пароль</label><input id="regPass" type="password" placeholder="Минимум 6 символов"></div>
+    <button class="btn btn-block" onclick="doRegister()">Создать аккаунт</button>
+    <p class="modal-hint">Уже есть аккаунт? <a href="#" onclick="closeModal('registerModal');openLogin();return false;">Войти</a></p>
+  </div>
+</div>
+
+<div class="toast" id="toastBox"></div>
+<script>
+  // Тема — применяем как можно раньше, чтобы не было мигания
+      (function() {
+        const theme = localStorage.getItem('aw_theme') || 'dark';
+        if (theme === 'light') document.documentElement.classList.add('theme-light');
+      })();
+    </script>
+    <script src="app.js?v=3"></script>
+    <script src="auth.js?v=3"></script>
+    <script src="admin.js?v=3"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+</script>
+<script src="app.js?v=6"></script>
+<script src="auth.js?v=6"></script>
+<script src="admin.js?v=7"></script>
+</body>
+</html>
