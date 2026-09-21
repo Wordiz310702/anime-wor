@@ -1,0 +1,9 @@
+meta:
+  environment: docker
+  toolchain: docker
+
+build:
+  dockerfile: Dockerfile
+
+run:
+  containerPort: 3333
