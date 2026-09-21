@@ -1,15 +1,15 @@
 package main
 
 import (
+	"anime-wor/internal/auth"
+	"anime-wor/internal/db"
+	"anime-wor/internal/handlers"
 	"bufio"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
-
-	"anime-wor/internal/auth"
-	"anime-wor/internal/db"
-	"anime-wor/internal/handlers"
 )
 
 func main() {
@@ -76,19 +76,32 @@ func main() {
 	mux.HandleFunc("POST /api/admin/comments/{id}/approve", auth.RequireAdmin(handlers.AdminApproveComment))
 
 	// ---------- Статика ----------
-	fs := http.FileServer(http.Dir("public"))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// SPA fallback: не-api пути отдают index.html
-		if !strings.HasPrefix(r.URL.Path, "/api/") {
-			path := "public" + r.URL.Path
-			if _, err := os.Stat(path); os.IsNotExist(err) || r.URL.Path == "/" {
-				http.ServeFile(w, r, "public/index.html")
-				return
-			}
+		// API-пути — не наша забота
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
 		}
-		fs.ServeHTTP(w, r)
+
+		// Собираем путь к файлу
+		cleanPath := strings.TrimPrefix(r.URL.Path, "/")
+		if cleanPath == "" {
+			cleanPath = "index.html"
+		}
+		filePath := filepath.Join("public", cleanPath)
+
+		// Проверяем, существует ли файл
+		if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+			// Файл существует — отдаём его
+			http.ServeFile(w, r, filePath)
+			return
+		}
+
+		// Файла нет — отдаём index.html (SPA-роутинг)
+		http.ServeFile(w, r, "public/index.html")
 	})
 
+	// Запуск сервера
 	log.Printf("✓ Anime-Wor запущен: http://localhost:%s", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
