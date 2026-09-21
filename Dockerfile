@@ -1,3 +1,4 @@
+# rebuild: 2026-09-21-1
 # ---- Этап 1: сборка ----
 FROM golang:1.26-alpine AS builder
 
