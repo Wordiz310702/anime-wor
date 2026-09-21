@@ -14,7 +14,10 @@ import (
 var DB *sql.DB
 
 func Init() error {
-	dir := "data"
+	dir := os.Getenv("DATA_DIR")
+	if dir == "" {
+		dir = "data"
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}

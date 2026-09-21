@@ -1,0 +1,14 @@
+services:
+  anime-wor:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - PORT=80
+      - JWT_SECRET=change_me_to_long_random_string
+      - ADMIN_USER=admin
+      - ADMIN_PASS=admin123
+      - DATA_DIR=/data
+    volumes:
+      - ./data:/data
+      - ./public/uploads:/app/public/uploads

@@ -1,4 +1,4 @@
-const CACHE = 'anime-wor-v1';
+const CACHE = 'anime-wor-v2';   // было v1
 const ASSETS = [
   '/',
   '/index.html',

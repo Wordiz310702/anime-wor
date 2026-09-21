@@ -3,6 +3,7 @@
 let DATA = { anime: [], banners: [] };
 let CURRENT_USER = null;
 let USER_FAVORITES = [];
+let currentHls = null;
 
 // ---------- ТЕМА ----------
 function toggleTheme() {
@@ -119,7 +120,14 @@ async function navigate(page, param) {
   app.innerHTML = renderAnimePage(param);
   loadRating(param);
   loadComments(param);
+
+  // Автозапуск первой серии
+  const anime = getAnime(param);
+  const firstEp = anime?.voices?.[0]?.episodes?.[0];
+  if (firstEp) {
+    setTimeout(() => playVideo(firstEp), 500);
   }
+}
   else if (page === 'admin') {
     if (!CURRENT_USER || CURRENT_USER.role !== 'admin') {
       app.innerHTML = `<div class="container"><div class="empty"><h3>Доступ запрещён</h3><p>Только для админа</p></div></div>`;
@@ -366,10 +374,10 @@ function renderAnimePage(id) {
         </div>
 
         <div class="player" id="player">
-          ${eps[0]
-            ? `<iframe id="playerFrame" src="${escapeHtml(eps[0])}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`
-            : `<div style="color:#fff;display:grid;place-items:center;height:100%;font-size:14px">Видео не добавлено</div>`}
-        </div>
+            ${eps[0]
+              ? `<video id="videoPlayer" controls playsinline style="width:100%;height:100%"></video>`
+              : `<div style="color:#fff;display:grid;place-items:center;height:100%;font-size:14px">Видео не добавлено</div>`}
+        </div>          
 
         <div class="comments">
           <h3>Комментарии <span id="commentsCount" style="color:var(--text-3);font-weight:500"></span></h3>
@@ -384,19 +392,28 @@ function renderAnimePage(id) {
       </div>
     </div>
   </div>`;
+  // Автозапуск первой серии
+    setTimeout(() => {
+      if (eps[0]) playVideo(eps[0]);
+    }, 200);
 }
 
 function selectVoice(animeId, vi) {
   const a = getAnime(animeId);
   if (!a) return;
+
   document.querySelectorAll('.voice-btn').forEach((b, i) => b.classList.toggle('active', i === vi));
+
   const eps = a.voices[vi].episodes;
   const epsHTML = eps.map((_, i) =>
     `<button class="ep-btn ${i === 0 ? 'active' : ''}" onclick="selectEpisode('${animeId}', ${i}, this)">${i + 1}</button>`
   ).join('');
-  document.getElementById('epList').innerHTML = epsHTML || '<p style="color:#666;font-size:13px">Пусто</p>';
-  const frame = document.getElementById('playerFrame');
-  if (frame && eps[0]) frame.src = eps[0];
+  document.getElementById('epList').innerHTML = epsHTML || '<p style="color:var(--text-3);font-size:13px">Эпизоды не загружены</p>';
+
+  // Автозапуск первой серии новой озвучки
+  if (eps[0]) {
+    playVideo(eps[0]);
+  }
 }
 
 function selectEpisode(animeId, epIndex, btn) {
@@ -404,12 +421,18 @@ function selectEpisode(animeId, epIndex, btn) {
   const activeVoice = [...document.querySelectorAll('.voice-btn')].findIndex(b => b.classList.contains('active'));
   const voiceName = a.voices[activeVoice]?.name || '';
   const src = a.voices[activeVoice]?.episodes[epIndex];
+
+  console.log('[selectEpisode] ep:', epIndex, 'src:', src);
+
   document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const frame = document.getElementById('playerFrame');
-  if (frame && src) frame.src = src;
 
-  // Сохранение истории
+  // Запускаем видео
+  if (src) {
+    playVideo(src);
+  }
+
+  // Сохраняем историю
   if (CURRENT_USER) {
     api('/users/history', {
       method: 'POST',
@@ -623,3 +646,62 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof initAuth === 'function') await initAuth();
   navigate('home');
 });
+
+// Запуск HLS-плеера
+function playHls(streamUrl) {
+  const video = document.getElementById('videoPlayer');
+  if (!video) return;
+
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(streamUrl);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(e => console.log('Автовоспроизведение заблокировано:', e));
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari и iOS
+    video.src = streamUrl;
+    video.play().catch(e => console.log('Ошибка:', e));
+  }
+}
+
+function playVideo(url) {
+  const video = document.getElementById('videoPlayer');
+  if (!video) return;
+
+  // Останавливаем предыдущий HLS
+  if (currentHls) {
+    currentHls.destroy();
+    currentHls = null;
+  }
+
+  // Проверяем тип ссылки
+  const isHls = url.includes('.m3u8');
+  const isDirect = url.match(/\.(mp4|webm|mkv)$/i);
+  const isIframe = url.includes('youtube') || url.includes('vk') || url.includes('rutube');
+
+  if (isHls && window.Hls && Hls.isSupported()) {
+    // HLS-поток (Kodik)
+    currentHls = new Hls();
+    currentHls.loadSource(url);
+    currentHls.attachMedia(video);
+    currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(() => {});
+    });
+  } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari
+    video.src = url;
+    video.play().catch(() => {});
+  } else if (isDirect) {
+    // Прямой mp4/webm
+    video.src = url;
+    video.play().catch(() => {});
+  } else if (isIframe) {
+    // Для YouTube/VK оставляем iframe-фолбэк
+    video.outerHTML = `<iframe id="videoPlayer" src="${url}" style="width:100%;height:100%;border:none" allowfullscreen></iframe>`;
+  } else {
+    // Неизвестный формат — пробуем как видео
+    video.src = url;
+  }
+}

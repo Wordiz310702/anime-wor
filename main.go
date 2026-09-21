@@ -20,6 +20,11 @@ func main() {
 	}
 	auth.Init()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
 	// Папка для загруженных файлов
 	handlers.SetUploadDir("public/uploads")
 
@@ -39,6 +44,10 @@ func main() {
 	// Anime
 	mux.HandleFunc("GET /api/anime", handlers.ListAnime)
 	mux.HandleFunc("GET /api/anime/{id}", handlers.GetAnime)
+	mux.HandleFunc("GET /api/shikimori/search", handlers.SearchShikimoriHandler)
+	mux.HandleFunc("GET /api/shikimori/details", handlers.GetShikimoriDetailsHandler)
+	mux.HandleFunc("GET /api/kodik/fetch", handlers.FetchKodikVideo)
+	mux.HandleFunc("POST /api/kodik/parse", auth.RequireAdmin(handlers.ParseKodikLink))
 	mux.HandleFunc("POST /api/anime", auth.RequireAdmin(handlers.CreateAnime))
 	mux.HandleFunc("PUT /api/anime/{id}", auth.RequireAdmin(handlers.UpdateAnime))
 	mux.HandleFunc("DELETE /api/anime/{id}", auth.RequireAdmin(handlers.DeleteAnime))
@@ -80,11 +89,6 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
-
 	log.Printf("✓ Anime-Wor запущен: http://localhost:%s", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
@@ -114,5 +118,10 @@ func loadEnv(path string) {
 		if os.Getenv(key) == "" {
 			_ = os.Setenv(key, val)
 		}
+	}
+
+	// ← добавить это:
+	if err := sc.Err(); err != nil {
+		log.Printf("[loadEnv] Ошибка чтения %s: %v", path, err)
 	}
 }

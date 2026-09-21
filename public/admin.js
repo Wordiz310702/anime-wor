@@ -81,6 +81,18 @@ function tabAnime() {
   return `
     <div class="panel">
       <h3>Добавить / изменить аниме</h3>
+            <div class="shiki-import">
+        <div class="shiki-import-head">
+          <h4>🌸 Импорт с Shikimori</h4>
+          <span>Найди аниме — поля заполнятся автоматически</span>
+        </div>
+        <div class="shiki-import-row">
+          <input id="shikiQuery" placeholder="Введите название (например, Магическая битва)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();searchShikimori();}">
+          <button class="btn btn-cyan btn-sm" type="button" onclick="searchShikimori()">🔍 Найти</button>
+        </div>
+        <div id="shikiResults" class="shiki-results"></div>
+      </div>
       <div class="form-grid">
         <input type="hidden" id="af_id">
         <div class="field"><label>Название *</label><input id="af_title" placeholder="Например: Наруто"></div>
@@ -135,16 +147,23 @@ function renderVoiceRows() {
   const el = document.getElementById('voicesEditor');
   if (!el) return;
   if (!voiceRows.length) {
-    el.innerHTML = '<p style="font-size:13px;color:#666">Озвучек нет</p>';
+    el.innerHTML = '<p style="color:var(--text-3); font-size:13px">Озвучек пока нет</p>';
     return;
   }
   el.innerHTML = voiceRows.map((v, i) => `
-    <div class="form-grid" style="margin-bottom:12px; padding:12px; background:var(--white); border:2.5px solid var(--black); border-radius:var(--radius)">
-      <div class="field"><label>Название</label>
-        <input value="${escapeHtml(v.name)}" oninput="voiceRows[${i}].name=this.value">
+    <div class="form-grid" style="margin-bottom:14px; padding:16px; background:rgba(0,0,0,.3); border-radius:14px; border:1px solid rgba(255,255,255,.06)">
+      <div class="field"><label>Название озвучки</label>
+        <input value="${escapeHtml(v.name)}" placeholder="AniLibria" oninput="voiceRows[${i}].name=this.value">
       </div>
-      <div class="field"><label>Ссылки на серии через запятую</label>
-        <input value="${escapeHtml(v.episodes)}" oninput="voiceRows[${i}].episodes=this.value">
+      <div class="field full">
+        <label>🎬 Kodik-ссылка (вставь из DevTools)</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <input id="kodik-link-${i}" placeholder="//kodikplayer.com/seria/.../720p" style="flex:1; min-width:250px">
+          <button type="button" class="btn btn-cyan btn-sm" onclick="extractKodik(${i})">Извлечь .m3u8</button>
+        </div>
+      </div>
+      <div class="field full"><label>Ссылки на эпизоды (через запятую)</label>
+        <input value="${escapeHtml(v.episodes)}" placeholder="url1, url2, url3" oninput="voiceRows[${i}].episodes=this.value">
       </div>
       <div class="full" style="text-align:right">
         <button class="btn btn-danger btn-sm" onclick="voiceRows.splice(${i},1);renderVoiceRows()">Удалить</button>
@@ -413,6 +432,71 @@ async function initAdmin() {
   voiceRows = [];
   currentTab = 'dashboard';
   await renderTabContent();
+}
+
+/* ================= Импорт с Shikimori ================= */
+
+async function searchShikimori() {
+  const q = document.getElementById('shikiQuery').value.trim();
+  if (!q) { toast('Введите название', true); return; }
+
+  const box = document.getElementById('shikiResults');
+  box.innerHTML = '<div class="shiki-loading">Поиск на Shikimori...</div>';
+
+  try {
+    const data = await api('/shikimori/search?q=' + encodeURIComponent(q) + '&limit=8');
+    if (!data.results || !data.results.length) {
+      box.innerHTML = '<div class="shiki-empty">Ничего не найдено</div>';
+      return;
+    }
+
+    box.innerHTML = data.results.map(r => `
+      <div class="shiki-item" onclick="importFromShikimori(${r.id})">
+        <img src="${escapeHtml(r.poster)}" onerror="this.src='https://via.placeholder.com/50x70/FF6B35/fff'">
+        <div class="shiki-item-info">
+          <b>${escapeHtml(r.russian || r.name)}</b>
+          <span>${escapeHtml(r.name)}</span>
+          <span class="shiki-meta">${r.aired_on ? r.aired_on.slice(0, 4) : '—'} · ★ ${r.score} · ${r.episodes || '?'} эп.</span>
+        </div>
+        <span class="shiki-badge">${escapeHtml(r.kind || '')}</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    box.innerHTML = `<div class="shiki-empty">Ошибка: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function importFromShikimori(shikimoriID) {
+  const box = document.getElementById('shikiResults');
+  box.innerHTML = '<div class="shiki-loading">Загружаем детали...</div>';
+
+  try {
+    const d = await api('/shikimori/details?id=' + shikimoriID);
+
+    // Заполняем поля формы
+    document.getElementById('af_title').value = d.russian || d.name;
+    document.getElementById('af_original').value = d.name;
+    document.getElementById('af_year').value = d.year || 2024;
+    document.getElementById('af_rating').value = d.score || 8.0;
+    document.getElementById('af_genres').value = (d.genres || []).join(', ');
+    document.getElementById('af_poster').value = d.poster;
+    document.getElementById('af_desc').value = d.description || 'Описание отсутствует';
+
+    // Превью постера
+    const preview = document.getElementById('af_poster_preview');
+    if (preview) {
+      preview.innerHTML = `<img src="${escapeHtml(d.poster)}" style="max-height:180px; border-radius:12px; border:1px solid rgba(255,255,255,.1)">`;
+    }
+
+    // Прячем результаты и очищаем поиск
+    box.innerHTML = '';
+    document.getElementById('shikiQuery').value = '';
+
+    toast(`«${d.russian || d.name}» загружено. Добавьте озвучки.`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    box.innerHTML = `<div class="shiki-empty">Ошибка: ${escapeHtml(e.message)}</div>`;
+  }
 }
 
 // Живой предпросмотр выбранных файлов
@@ -700,4 +784,52 @@ async function deleteFile(name) {
     toast('Удалено');
     loadGallery();
   } catch (e) { toast(e.message, true); }
+}
+
+// Извлекает .m3u8 из Kodik-ссылки и добавляет в текущую озвучку
+async function extractKodik(voiceIndex) {
+  const input = document.getElementById('kodik-link-' + voiceIndex);
+  const link = input.value.trim();
+
+  if (!link) {
+    toast('Вставьте Kodik-ссылку', true);
+    return;
+  }
+
+  if (!link.includes('/seria/') && !link.includes('/video/')) {
+    toast('Нужна ссылка на конкретную серию (/seria/...), а не /serial/', true);
+    return;
+  }
+
+  try {
+    toast('Извлекаем .m3u8 из Kodik...');
+
+    const res = await api('/kodik/parse', {
+      method: 'POST',
+      body: { link }
+    });
+
+    if (!res.video_url) {
+      toast('Не удалось извлечь ссылку', true);
+      return;
+    }
+
+    // Добавляем в конец поля episodes
+    const current = voiceRows[voiceIndex].episodes || '';
+    const updated = current ? current + ', ' + res.video_url : res.video_url;
+    voiceRows[voiceIndex].episodes = updated;
+
+    // Перерисовываем — поле episodes обновится
+    renderVoiceRows();
+
+    // Очищаем поле Kodik-ссылки
+    setTimeout(() => {
+      const i = document.getElementById('kodik-link-' + voiceIndex);
+      if (i) i.value = '';
+    }, 100);
+
+    toast(`✓ Добавлено видео ${res.quality}p`);
+  } catch (e) {
+    toast('Ошибка: ' + e.message, true);
+  }
 }

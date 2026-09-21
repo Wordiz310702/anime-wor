@@ -1611,3 +1611,127 @@ html.theme-light .hero-slide .hero-content p {
 html.theme-light .hero-content .hero-badge {
   color: #FFFFFF !important;
 }
+
+/* ================= Импорт с Shikimori ================= */
+.shiki-import {
+  padding: 16px;
+  background: rgba(79, 216, 255, 0.06);
+  border: 1px solid rgba(79, 216, 255, 0.25);
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+}
+.shiki-import-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.shiki-import-head h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+.shiki-import-head span {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.shiki-import-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.shiki-import-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+.shiki-import-row input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(79, 216, 255, 0.15);
+}
+.shiki-results {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+@media (max-width: 700px) {
+  .shiki-results { grid-template-columns: 1fr; }
+}
+.shiki-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-items: center;
+}
+.shiki-item:hover {
+  background: rgba(79, 216, 255, 0.1);
+  border-color: rgba(79, 216, 255, 0.4);
+  transform: translateY(-1px);
+}
+.shiki-item img {
+  width: 42px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.shiki-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.shiki-item-info b {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shiki-item-info span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shiki-item-info .shiki-meta {
+  color: var(--amber);
+  font-weight: 600;
+}
+.shiki-badge {
+  padding: 3px 8px;
+  background: rgba(79, 216, 255, 0.15);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+.shiki-loading,
+.shiki-empty {
+  grid-column: 1 / -1;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}

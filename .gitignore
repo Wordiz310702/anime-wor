@@ -4,4 +4,17 @@ public/uploads/
 node_modules/
 *.log
 .DS_Store
-Thumbs.db
+Thumbs.dbconfig.yml
+.cloudflared/
+# Бинарники
+*.exe
+anime-wor
+anime-wor.exe
+# Cloudflared / ngrok
+config.yml
+.cloudflared/
+# Тестовые скрипты
+test-*.mjs
+*.test.mjs
+# Временные
+*.log
